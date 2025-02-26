@@ -19,3 +19,5 @@ sudo apt install python3-pillow
 
 sudo apt-get install python3-pil.imagetk
 
+# Paste the overlay you want to use to Pictures directory
+
