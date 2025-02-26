@@ -87,9 +87,12 @@ class PhotoApp:
         combined.paste(overlay, position, overlay)  # Paste overlay with transparency
         return combined
 
+    
     def save_photo(self, img):
         """ Save the captured photo with overlay to the Pictures folder """
-        photo_path = os.path.expanduser(f"~/Pictures/photo_{int(time.time())}.png")  # Unique filename
+        photo_name = f"photo_{int(time.time())}.png"
+        photo_path = os.path.expanduser(f"~/Pictures/{photo_name}")  # Unique filename
+        
         img.save(photo_path)
         print(f"Photo saved to {photo_path}")
         self.photo_path = photo_path  # Save the path for later use (e.g., printing)
@@ -118,12 +121,22 @@ class PhotoApp:
     def print_photo(self, preview_window):
         """ Print the saved photo using Linux `lp` command """
         if hasattr(self, 'photo_path'):
-            print(f"Simulating print for: {self.photo_path}")
+            #print(f"Simulating print for: {self.photo_path}")
             # Uncomment the line below for actual printing if a printer is available
             # os.system(f"lp {self.photo_path}")  # Print using system command
 
-            #To print a file to a specific printer (without setting it as the default), you can use the -d option with the lp command to specify the printer:
-            #lp -d printer_name /path/to/photo.png
+            #To print a file to a specific printer 
+            #(without setting it as the default), 
+            #you can use the -d option with the lp command to specify the printer:
+            
+            import subprocess
+
+            printer_name = "HP_LaserJet_MFP_M140w_8C2E18_USB"
+            photo_path = self.photo_path
+
+
+            subprocess.run(["lp", "-d", printer_name, photo_path])
+
 
             preview_window.destroy()  # Close preview window after printing
 
