@@ -10,8 +10,12 @@ from tkinter import font as tkFont
 class PhotoApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("POLI International Fest")
+        self.root.title("Photo Booth")
         self.root.attributes('-fullscreen', True)  # Fullscreen mode
+        
+        # Get screen dimensions
+        self.screen_width = self.root.winfo_screenwidth()
+        self.screen_height = self.root.winfo_screenheight()
         
         # Define color scheme
         self.primary_color = "#1A237E"  # Deep blue
@@ -22,41 +26,52 @@ class PhotoApp:
         # Configure root background
         self.root.configure(bg=self.bg_color)
         
-        # Create custom fonts
-        self.title_font = tkFont.Font(family="Helvetica", size=36, weight="bold")
-        self.button_font = tkFont.Font(family="Helvetica", size=24)
-        self.countdown_font = tkFont.Font(family="Helvetica", size=80, weight="bold")
+        # Create custom fonts - SCALED BASED ON SCREEN SIZE
+        self.title_font = tkFont.Font(family="Helvetica", 
+                                     size=max(14, min(36, int(self.screen_height / 20))), 
+                                     weight="bold")
+        self.button_font = tkFont.Font(family="Helvetica", 
+                                      size=max(16, min(42, int(self.screen_height / 16))), 
+                                      weight="bold")
+        self.countdown_font = tkFont.Font(family="Helvetica", 
+                                         size=max(40, min(80, int(self.screen_height / 8))), 
+                                         weight="bold")
         
         # Camera setup
-        self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # Force Video4Linux2
+        self.cap = cv2.VideoCapture(2, cv2.CAP_V4L2)  # Force Video4Linux2
         
-        # Header with title
-        self.header = tk.Frame(root, bg=self.primary_color, height=100)
+        # Header with title - REDUCED HEIGHT FOR SMALL SCREENS
+        header_height = min(100, max(60, int(self.screen_height * 0.1)))
+        self.header = tk.Frame(root, bg=self.primary_color, height=header_height)
         self.header.pack(fill=tk.X, padx=0, pady=0)
         
         self.title_label = tk.Label(
             self.header, 
-            text="POLI International Fest", 
+            text="Photo Booth", 
             font=self.title_font, 
             fg="white", 
             bg=self.primary_color
         )
-        self.title_label.pack(pady=20)
+        self.title_label.pack(pady=max(5, min(20, int(self.screen_height * 0.02))))
         
-        # Main content frame - use more space
+        # Main content frame - REDUCED PADDING FOR SMALL SCREENS
         self.content_frame = tk.Frame(root, bg=self.bg_color)
-        self.content_frame.pack(expand=True, fill=tk.BOTH, padx=10, pady=10)  # Reduced padding
+        self.content_frame.pack(expand=True, fill=tk.BOTH, 
+                               padx=max(5, min(20, int(self.screen_width * 0.02))), 
+                               pady=max(5, min(20, int(self.screen_height * 0.02))))
         
-        # Video frame with stylish border - larger relative size
+        # Video frame with stylish border
         self.video_frame = tk.Frame(
             self.content_frame, 
             bg=self.primary_color,
             highlightbackground=self.accent_color,
-            highlightthickness=5,
-            padx=5,  # Reduced inner padding
-            pady=5   # Reduced inner padding
+            highlightthickness=3,
+            padx=3,  # Minimal padding for small screens
+            pady=3   # Minimal padding for small screens
         )
-        self.video_frame.pack(expand=True, fill=tk.BOTH, padx=20, pady=10)  # Reduced outer padding
+        self.video_frame.pack(expand=True, fill=tk.BOTH, 
+                             padx=max(5, min(30, int(self.screen_width * 0.03))), 
+                             pady=max(5, min(20, int(self.screen_height * 0.02))))
         
         # Canvas for video display
         self.canvas = tk.Label(self.video_frame, bg="black")
@@ -72,29 +87,43 @@ class PhotoApp:
         )
         self.countdown_label.place(relx=0.5, rely=0.5, anchor="center")
         
-        # Button frame with more space
+        # Button frame - REDUCED PADDING FOR SMALL SCREENS
         self.btn_frame = tk.Frame(root, bg=self.bg_color)
-        self.btn_frame.pack(pady=30, padx=20, side=tk.BOTTOM, fill=tk.X)
+        self.btn_frame.pack(
+            pady=max(10, min(30, int(self.screen_height * 0.04))), 
+            padx=max(10, min(20, int(self.screen_width * 0.02))), 
+            side=tk.BOTTOM, 
+            fill=tk.X
+        )
         
-        # Styled capture button - SUPER SIZED for touch screens
+        # Calculate button size based on screen dimensions
+        btn_font_size = max(18, min(42, int(self.screen_height / 16)))
+        btn_padx = max(20, min(60, int(self.screen_width * 0.06)))
+        btn_pady = max(10, min(30, int(self.screen_height * 0.04)))
+        
+        # Styled capture button - SCALED FOR SCREEN SIZE
         self.btn_capture = tk.Button(
             self.btn_frame, 
             text="📸 Take Photo", 
-            font=tkFont.Font(family="Helvetica", size=42, weight="bold"),  # Much larger font
+            font=tkFont.Font(family="Helvetica", size=btn_font_size, weight="bold"),
             command=self.start_countdown, 
             bg=self.accent_color,
             fg="white",
             activebackground=self.primary_color,
             activeforeground="white",
             relief=tk.RAISED,
-            borderwidth=4,  # Thicker border
-            padx=60,  # Much more horizontal padding
-            pady=30,  # Much more vertical padding
+            borderwidth=3,
+            padx=btn_padx,
+            pady=btn_pady,
             cursor="hand2"
         )
-        # Center the button with more vertical space
-        self.btn_capture.pack(pady=30, expand=True, ipadx=20, ipady=10)  # Added internal padding
-        
+        # Center the button with scaled padding
+        self.btn_capture.pack(
+            pady=max(10, min(30, int(self.screen_height * 0.03))), 
+            expand=True, 
+            ipadx=max(5, min(20, int(self.screen_width * 0.02))), 
+            ipady=max(3, min(10, int(self.screen_height * 0.015)))
+        )
 
         self.overlay = self.load_overlay()  # Load overlay image
         self.update_video_stream()
@@ -247,125 +276,152 @@ class PhotoApp:
         preview_window.title("Preview Photo")
         preview_window.configure(bg=self.bg_color)
         
-        # Make preview window fullscreen for better visibility
+        # Make preview window fullscreen
         preview_window.attributes('-fullscreen', True)
         
-        # Get screen dimensions
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        
-        # Create header in preview window
-        preview_header = tk.Frame(preview_window, bg=self.primary_color, height=80)
+        # Create header in preview window - SCALED HEIGHT
+        header_height = min(80, max(40, int(self.screen_height * 0.08)))
+        preview_header = tk.Frame(preview_window, bg=self.primary_color, height=header_height)
         preview_header.pack(fill=tk.X, padx=0, pady=0)
         
+        # SCALED FONT SIZE
+        title_size = max(16, min(32, int(self.screen_height / 20)))
         preview_title = tk.Label(
             preview_header, 
             text="Your Photo", 
-            font=("Helvetica", 32, "bold"),
+            font=("Helvetica", title_size, "bold"),
             fg="white", 
             bg=self.primary_color
         )
-        preview_title.pack(pady=15, side=tk.LEFT, padx=(20, 0))
+        preview_title.pack(pady=max(5, min(15, int(self.screen_height * 0.02))), 
+                          side=tk.LEFT, 
+                          padx=(max(10, min(20, int(self.screen_width * 0.02))), 0))
         
-        # Add exit button to header
+        # Add exit button to header - SCALED SIZE
+        exit_btn_font = max(10, min(16, int(self.screen_height / 40)))
         btn_exit = tk.Button(
             preview_header, 
             text="Return to Main", 
-            command=preview_window.destroy,  # This will only close the preview window
-            font=("Helvetica", 16),
+            command=preview_window.destroy,
+            font=("Helvetica", exit_btn_font),
             bg="#F44336",  # Red
             fg="white",
-            padx=15,
-            pady=8,
+            padx=max(5, min(15, int(self.screen_width * 0.015))),
+            pady=max(3, min(8, int(self.screen_height * 0.012))),
             cursor="hand2",
             relief=tk.RAISED,
             borderwidth=2
         )
-        btn_exit.pack(side=tk.RIGHT, padx=20, pady=15)
-
-        # Content frame - limit maximum height to ensure buttons remain visible
+        btn_exit.pack(side=tk.RIGHT, 
+                     padx=max(10, min(20, int(self.screen_width * 0.02))), 
+                     pady=max(5, min(15, int(self.screen_height * 0.02))))
+        
+        # Content frame - SCALED PADDING
         preview_content = tk.Frame(preview_window, bg=self.bg_color)
-        preview_content.pack(expand=True, fill=tk.BOTH, padx=20, pady=10)
-
-        # Display the photo with a nice border - LARGER
+        preview_content.pack(expand=True, fill=tk.BOTH, 
+                            padx=max(5, min(20, int(self.screen_width * 0.02))), 
+                            pady=max(5, min(10, int(self.screen_height * 0.015))))
+        
+        # Display the photo with a nice border - SCALED BORDER AND PADDING
         photo_frame = tk.Frame(
             preview_content, 
             bg="white",
             highlightbackground=self.accent_color,
-            highlightthickness=5,  # Thicker border
-            padx=15,
-            pady=15
+            highlightthickness=3,
+            padx=max(5, min(15, int(self.screen_width * 0.015))),
+            pady=max(5, min(15, int(self.screen_height * 0.02)))
         )
-        photo_frame.pack(expand=True, pady=20)
-
-        # Calculate proper size while maintaining aspect ratio - INCREASED SIZE
+        photo_frame.pack(expand=True, pady=max(5, min(20, int(self.screen_height * 0.03))))
+        
+        # Calculate proper size while maintaining aspect ratio - SCALED MAX SIZE
         img_w, img_h = img.size
-        # Increase max_size for a bigger photo (70% of screen height)
-        max_size = int(screen_height * 0.7)  
+        # Set max size to 50% of screen height for small screens (was 70%)
+        max_size = int(self.screen_height * 0.5)
         ratio = min(max_size/img_w, max_size/img_h)
         new_size = (int(img_w * ratio), int(img_h * ratio))
         
         img_resized = img.resize(new_size)
         img_tk = ImageTk.PhotoImage(img_resized)
-
+        
         label = tk.Label(photo_frame, image=img_tk, bg="white")
         label.image = img_tk  # Keep a reference to the image
-        label.pack(pady=10, padx=10)
-
-        # Button frame - pack with fixed position at bottom to ensure visibility
-        # Increased height for larger buttons
-        button_frame = tk.Frame(preview_window, bg=self.bg_color, height=200)
-        button_frame.pack(side=tk.BOTTOM, pady=15, fill=tk.X)
-
+        label.pack(pady=5, padx=5)
+        
+        # Button frame - REDUCED HEIGHT FOR SMALL SCREENS
+        button_frame = tk.Frame(preview_window, bg=self.bg_color, 
+                              height=max(100, min(200, int(self.screen_height * 0.25))))
+        button_frame.pack(side=tk.BOTTOM, 
+                         pady=max(5, min(15, int(self.screen_height * 0.02))), 
+                         fill=tk.X)
+        
+        # SCALED FONT SIZE
+        label_size = max(14, min(25, int(self.screen_height / 27)))
         # Action label to make it clearer
         action_label = tk.Label(
             button_frame,
             text="What would you like to do?",
-            font=("Helvetica", 25),  # Larger font
+            font=("Helvetica", label_size),
             fg=self.text_color,
             bg=self.bg_color
         )
-        action_label.pack(pady=(0, 15))
-
+        action_label.pack(pady=(0, max(5, min(15, int(self.screen_height * 0.02)))))
+        
         # Button container for better layout
         btn_container = tk.Frame(button_frame, bg=self.bg_color)
         btn_container.pack(fill=tk.X)
-
-        # Print button - SUPER SIZED for touch screens to match Take Photo button
+        
+        # CALCULATE BUTTON SIZES BASED ON SCREEN SIZE
+        btn_font_size = max(16, min(42, int(self.screen_height / 17)))
+        btn_padx = max(15, min(60, int(self.screen_width * 0.06)))
+        btn_pady = max(10, min(30, int(self.screen_height * 0.04)))
+        btn_side_padding = (max(20, min(80, int(self.screen_width * 0.08))), 
+                           max(10, min(40, int(self.screen_width * 0.04))))
+        
+        # Print button - SCALED FOR SMALL SCREENS
         btn_print = tk.Button(
             btn_container, 
-            text="🖨️ Print Photo", 
-            font=("Helvetica", 42, "bold"),  # Increased to match Take Photo button
+            text="🖨️ Print", 
+            font=("Helvetica", btn_font_size, "bold"),
             command=lambda: self.print_photo(preview_window),
-            bg="#4CAF50",  # Green
+            bg="#4CAF50",
             fg="white",
-            activebackground="#388E3C",  # Darker green on hover
+            activebackground="#388E3C",
             activeforeground="white",
-            padx=60,  # Increased to match Take Photo button
-            pady=30,  # Increased to match Take Photo button
+            padx=btn_padx,
+            pady=btn_pady,
             cursor="hand2",
             relief=tk.RAISED,
-            borderwidth=4  # Thicker border to match Take Photo button
+            borderwidth=3
         )
-        btn_print.pack(side=tk.LEFT, padx=(80, 40), pady=30, expand=True, ipadx=20, ipady=10)  # Added internal padding
-
-        # Retake button - SUPER SIZED for touch screens to match Take Photo button
+        btn_print.pack(side=tk.LEFT, 
+                      padx=btn_side_padding, 
+                      pady=max(10, min(30, int(self.screen_height * 0.04))), 
+                      expand=True,
+                      ipadx=max(5, min(20, int(self.screen_width * 0.02))), 
+                      ipady=max(3, min(10, int(self.screen_height * 0.015))))
+        
+        # Retake button - SCALED FOR SMALL SCREENS
         btn_retake = tk.Button(
             btn_container, 
-            text="🔄 Retake Photo", 
-            font=("Helvetica", 42, "bold"),  # Increased to match Take Photo button
+            text="🔄 Retake", 
+            font=("Helvetica", btn_font_size, "bold"),
             command=lambda: self.retake_photo(preview_window),
-            bg="#FF9800",  # Orange
+            bg="#FF9800",
             fg="white",
-            activebackground="#F57C00",  # Darker orange on hover
+            activebackground="#F57C00",
             activeforeground="white",
-            padx=60,  # Increased to match Take Photo button
-            pady=30,  # Increased to match Take Photo button
+            padx=btn_padx,
+            pady=btn_pady,
             cursor="hand2",
             relief=tk.RAISED,
-            borderwidth=4  # Thicker border to match Take Photo button
+            borderwidth=3
         )
-        btn_retake.pack(side=tk.RIGHT, padx=(40, 80), pady=30, expand=True, ipadx=20, ipady=10)  # Added internal padding
+        btn_retake.pack(side=tk.RIGHT, 
+                       padx=btn_side_padding, 
+                       pady=max(10, min(30, int(self.screen_height * 0.04))), 
+                       expand=True,
+                       ipadx=max(5, min(20, int(self.screen_width * 0.02))), 
+                       ipady=max(3, min(10, int(self.screen_height * 0.015))))
 
     def print_photo(self, preview_window):
         """ Print the saved photo using Linux `lp` command """
