@@ -424,19 +424,20 @@ class PhotoApp:
                        ipady=max(3, min(10, int(self.screen_height * 0.015))))
 
     def print_photo(self, preview_window):
-        """ Print the saved photo using Linux `lp` command """
+        """ Print the saved photo using Linux `lp` command with proper sizing for A4 paper """
         if hasattr(self, 'photo_path'):
             import subprocess
-            #replace with printer name on your system
+            from PIL import Image
+            
+            # Get printer name - replace with your actual printer name
             printer_name = "HP_LaserJet_MFP_M140w_8C2E18_USB"
-            photo_path = self.photo_path
+            original_photo_path = self.photo_path
             
             # Show printing notification with improved styling
             print_notification = tk.Toplevel(preview_window)
             print_notification.title("Printing")
-            print_notification.geometry("400x200")
+            print_notification.attributes('-fullscreen', True)  # Fullscreen for consistency
             print_notification.configure(bg=self.bg_color)
-            print_notification.resizable(False, False)
             
             # Centered content frame
             notification_frame = tk.Frame(print_notification, bg=self.bg_color)
@@ -446,43 +447,98 @@ class PhotoApp:
             printer_label = tk.Label(
                 notification_frame,
                 text="🖨️",
-                font=("Helvetica", 36),
+                font=("Helvetica", 42),
                 fg=self.primary_color,
                 bg=self.bg_color
             )
-            printer_label.pack(pady=(0, 10))
+            printer_label.pack(pady=(0, 15))
             
             # Status message
             status_label = tk.Label(
                 notification_frame,
-                text="Printing your photo...",
-                font=("Helvetica", 16, "bold"),
+                text="Preparing your photo for printing...",
+                font=("Helvetica", 18, "bold"),
                 fg=self.primary_color,
                 bg=self.bg_color
             )
-            status_label.pack(pady=(0, 5))
+            status_label.pack(pady=(0, 10))
             
             # Progress message
             progress = tk.Label(
                 notification_frame,
-                text="Please wait while your photo is printing",
-                font=("Helvetica", 12),
+                text="Please wait...",
+                font=("Helvetica", 14),
                 fg=self.text_color,
                 bg=self.bg_color
             )
-            progress.pack(pady=5)
+            progress.pack(pady=10)
             
             self.root.update()
             
-            # Print the photo
-            subprocess.run(["lp", "-d", printer_name, photo_path])
-            
-            # Update message after print command is sent
-            progress.config(text="Print job sent successfully!")
-            
-            # Close notification and preview
-            self.root.after(2000, print_notification.destroy)
-            self.root.after(2500, preview_window.destroy)
+            # Create a print-ready version of the image optimized for A4 paper
+            try:
+                # A4 paper dimensions in pixels at 300 DPI
+                a4_width_px = int(8.27 * 300)  # A4 width: 8.27 inches
+                a4_height_px = int(11.69 * 300)  # A4 height: 11.69 inches
+                
+                # Open the original image
+                original_img = Image.open(original_photo_path)
+                
+                # Create a new A4-sized white image
+                a4_img = Image.new('RGB', (a4_width_px, a4_height_px), (255, 255, 255))
+                
+                # Resize the photo to fit nicely on A4 while maintaining aspect ratio
+                # Use 80% of A4 width for the image
+                target_width = int(a4_width_px * 0.8)
+                aspect_ratio = original_img.height / original_img.width
+                target_height = int(target_width * aspect_ratio)
+                
+                # Ensure height doesn't exceed 80% of A4 height
+                if target_height > (a4_height_px * 0.8):
+                    target_height = int(a4_height_px * 0.8)
+                    target_width = int(target_height / aspect_ratio)
+                
+                resized_img = original_img.resize((target_width, target_height), Image.LANCZOS)
+                
+                # Calculate position to center the image on the A4 page
+                x_offset = (a4_width_px - target_width) // 2
+                y_offset = (a4_height_px - target_height) // 2
+                
+                # Paste the resized image onto the A4 canvas
+                a4_img.paste(resized_img, (x_offset, y_offset))
+                
+                # Save the print-ready image
+                print_ready_path = os.path.splitext(original_photo_path)[0] + "_print.jpg"
+                a4_img.save(print_ready_path, quality=95, dpi=(300, 300))
+                progress.config(text="Photo prepared for printing!")
+                self.root.update()
+                
+                # Print the formatted image
+                status_label.config(text="Sending to printer...")
+                progress.config(text="Please wait while your photo is printing")
+                self.root.update()
+                
+                # Print command with specific options for photo printing
+                subprocess.run([
+                    "lp", 
+                    "-d", printer_name,
+                    "-o", "fit-to-page=true",
+                    "-o", "media=a4",
+                    "-o", "print-quality=high",
+                    print_ready_path
+                ])
+                
+                # Update message after print command is sent
+                status_label.config(text="Print job sent successfully!")
+                progress.config(text="You can collect your photo from the printer.")
+                
+            except Exception as e:
+                status_label.config(text="Printing Error")
+                progress.config(text=f"Error: {str(e)}")
+                
+            # Close notification and preview after delay
+            self.root.after(3000, print_notification.destroy)
+            self.root.after(3500, preview_window.destroy)
 
     def retake_photo(self, preview_window):
         """ Retake the photo by closing the preview window and starting over """
