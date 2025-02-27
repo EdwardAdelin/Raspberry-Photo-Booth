@@ -53,4 +53,9 @@ lpstat -a
 After identifying your desired printer, update the code accordingly.  
 Once you press the **Print** button in the app, the last captured photo will be printed using the specified printer.
 
+# Credits
+
+Adelin & Hadasa 
+
+
 
