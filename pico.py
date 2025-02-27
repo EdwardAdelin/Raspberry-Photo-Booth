@@ -38,7 +38,7 @@ class PhotoApp:
                                          weight="bold")
         
         # Camera setup
-        self.cap = cv2.VideoCapture(2, cv2.CAP_V4L2)  # Force Video4Linux2
+        self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # Force Video4Linux2
         
         # Header with title - REDUCED HEIGHT FOR SMALL SCREENS
         header_height = min(100, max(60, int(self.screen_height * 0.1)))
@@ -430,7 +430,7 @@ class PhotoApp:
             from PIL import Image
             
             # Get printer name - replace with your actual printer name
-            printer_name = "HP_LaserJet_MFP_M140w_8C2E18_USB"
+            printer_name = "HP_LaserJet_MFP_M140w_8C2E18"
             original_photo_path = self.photo_path
             
             # Show printing notification with improved styling
