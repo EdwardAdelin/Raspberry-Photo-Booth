@@ -38,7 +38,7 @@ class PhotoApp:
                                          weight="bold")
         
         # Camera setup
-        self.cap = cv2.VideoCapture(2, cv2.CAP_V4L2)  # Force Video4Linux2
+        self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # Force Video4Linux2
         # use terminal command if you want list of available cameras and select wanted port
         
         # Header with title - REDUCED HEIGHT FOR SMALL SCREENS
