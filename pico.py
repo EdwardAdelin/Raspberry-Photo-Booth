@@ -277,8 +277,11 @@ class PhotoApp:
         preview_window.title("Preview Photo")
         preview_window.configure(bg=self.bg_color)
         
-        # Make preview window fullscreen
+        # Force fullscreen using multiple approaches
         preview_window.attributes('-fullscreen', True)
+        preview_window.overrideredirect(True)  # Remove window decorations completely
+        preview_window.geometry(f"{self.screen_width}x{self.screen_height}+0+0")  # Set exact screen size
+        preview_window.focus_set()  # Give window focus
         
         # Create header in preview window - SCALED HEIGHT
         header_height = min(80, max(40, int(self.screen_height * 0.08)))
@@ -434,11 +437,21 @@ class PhotoApp:
             printer_name = "HP_LaserJet_MFP_M140w_8C2E18"
             original_photo_path = self.photo_path
             
-            # Show printing notification with improved styling
-            print_notification = tk.Toplevel(preview_window)
+            # Show printing notification with improved styling and guaranteed fullscreen
+            print_notification = tk.Toplevel(self.root)
             print_notification.title("Printing")
-            print_notification.attributes('-fullscreen', True)  # Fullscreen for consistency
             print_notification.configure(bg=self.bg_color)
+            
+            # Force fullscreen using multiple approaches
+            print_notification.attributes('-fullscreen', True)
+            print_notification.overrideredirect(True)  # Remove window decorations
+            print_notification.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
+            print_notification.focus_set()
+            
+            # Scale font sizes based on screen dimensions for better readability on small screens
+            icon_size = max(24, min(42, int(self.screen_height / 16)))
+            title_size = max(14, min(18, int(self.screen_height / 35)))
+            text_size = max(10, min(14, int(self.screen_height / 48)))
             
             # Centered content frame
             notification_frame = tk.Frame(print_notification, bg=self.bg_color)
@@ -448,29 +461,31 @@ class PhotoApp:
             printer_label = tk.Label(
                 notification_frame,
                 text="🖨️",
-                font=("Helvetica", 42),
+                font=("Helvetica", icon_size),
                 fg=self.primary_color,
                 bg=self.bg_color
             )
             printer_label.pack(pady=(0, 15))
             
-            # Status message
+            # Status message with adaptive font size
             status_label = tk.Label(
                 notification_frame,
                 text="Preparing your photo for printing...",
-                font=("Helvetica", 18, "bold"),
+                font=("Helvetica", title_size, "bold"),
                 fg=self.primary_color,
-                bg=self.bg_color
+                bg=self.bg_color,
+                wraplength=int(self.screen_width * 0.7)  # Allow text wrapping for small screens
             )
             status_label.pack(pady=(0, 10))
             
-            # Progress message
+            # Progress message with adaptive font size
             progress = tk.Label(
                 notification_frame,
                 text="Please wait...",
-                font=("Helvetica", 14),
+                font=("Helvetica", text_size),
                 fg=self.text_color,
-                bg=self.bg_color
+                bg=self.bg_color,
+                wraplength=int(self.screen_width * 0.7)  # Allow text wrapping
             )
             progress.pack(pady=10)
             
