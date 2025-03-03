@@ -38,7 +38,7 @@ class PhotoApp:
                                          weight="bold")
         
         # Camera setup
-        self.cap = cv2.VideoCapture(0, cv2.CAP_V4L2)  # Force Video4Linux2
+        self.cap = cv2.VideoCapture(2, cv2.CAP_V4L2)  # Force Video4Linux2
         # use terminal command if you want list of available cameras and select wanted port
         
         # Header with title - REDUCED HEIGHT FOR SMALL SCREENS
@@ -428,133 +428,188 @@ class PhotoApp:
                        ipady=max(3, min(10, int(self.screen_height * 0.015))))
 
     def print_photo(self, preview_window):
-        """ Print the saved photo using Linux `lp` command with proper sizing for A4 paper """
+        """ Convert photo to sketch, place it on diploma frame, and print it """
         if hasattr(self, 'photo_path'):
+            import cv2
+            from PIL import Image, ImageEnhance
             import subprocess
-            from PIL import Image
+            import os
             
-            # Get printer name - replace with your actual printer name
-            printer_name = "HP_LaserJet_MFP_M140w_8C2E18"
-            original_photo_path = self.photo_path
+            # Show printing notification
+            printing_notification = tk.Toplevel(self.root)
+            printing_notification.title("Processing")
+            printing_notification.configure(bg=self.bg_color)
             
-            # Show printing notification with improved styling and guaranteed fullscreen
-            print_notification = tk.Toplevel(self.root)
-            print_notification.title("Printing")
-            print_notification.configure(bg=self.bg_color)
+            # Force fullscreen
+            printing_notification.attributes('-fullscreen', True)
+            printing_notification.overrideredirect(True)
+            printing_notification.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
+            printing_notification.focus_set()
             
-            # Force fullscreen using multiple approaches
-            print_notification.attributes('-fullscreen', True)
-            print_notification.overrideredirect(True)  # Remove window decorations
-            print_notification.geometry(f"{self.screen_width}x{self.screen_height}+0+0")
-            print_notification.focus_set()
-            
-            # Scale font sizes based on screen dimensions for better readability on small screens
-            icon_size = max(24, min(42, int(self.screen_height / 16)))
-            title_size = max(14, min(18, int(self.screen_height / 35)))
-            text_size = max(10, min(14, int(self.screen_height / 48)))
-            
-            # Centered content frame
-            notification_frame = tk.Frame(print_notification, bg=self.bg_color)
+            # Create centered content frame
+            notification_frame = tk.Frame(printing_notification, bg=self.bg_color)
             notification_frame.place(relx=0.5, rely=0.5, anchor="center")
             
-            # Printer icon
-            printer_label = tk.Label(
+            # Status message
+            icon_size = max(24, min(42, int(self.screen_height / 16)))
+            title_size = max(14, min(18, int(self.screen_height / 35)))
+            
+            processing_label = tk.Label(
                 notification_frame,
                 text="🖨️",
                 font=("Helvetica", icon_size),
                 fg=self.primary_color,
                 bg=self.bg_color
             )
-            printer_label.pack(pady=(0, 15))
+            processing_label.pack(pady=(0, 15))
             
-            # Status message with adaptive font size
             status_label = tk.Label(
                 notification_frame,
-                text="Preparing your photo for printing...",
+                text="Creating your diploma...",
                 font=("Helvetica", title_size, "bold"),
                 fg=self.primary_color,
-                bg=self.bg_color,
-                wraplength=int(self.screen_width * 0.7)  # Allow text wrapping for small screens
+                bg=self.bg_color
             )
-            status_label.pack(pady=(0, 10))
-            
-            # Progress message with adaptive font size
-            progress = tk.Label(
-                notification_frame,
-                text="Please wait...",
-                font=("Helvetica", text_size),
-                fg=self.text_color,
-                bg=self.bg_color,
-                wraplength=int(self.screen_width * 0.7)  # Allow text wrapping
-            )
-            progress.pack(pady=10)
+            status_label.pack(pady=10)
             
             self.root.update()
             
-            # Create a print-ready version of the image optimized for A4 paper
             try:
-                # A4 paper dimensions in pixels at 300 DPI
-                a4_width_px = int(8.27 * 300)  # A4 width: 8.27 inches
-                a4_height_px = int(11.69 * 300)  # A4 height: 11.69 inches
+                # Load the original image
+                original_img = cv2.imread(self.photo_path)
+
+                # Create sketch effect
+                # Step 1: Convert to grayscale
+                gray_img = cv2.cvtColor(original_img, cv2.COLOR_BGR2GRAY)
+
+                # Step 2: Invert the grayscale image
+                inverted_img = 255 - gray_img
+
+                # Step 3: Apply Gaussian blur to the inverted image
+                blurred_img = cv2.GaussianBlur(inverted_img, (21, 21), 0)
+
+                # Step 4: Invert the blurred image
+                inverted_blurred = 255 - blurred_img
+
+                # Step 5: Create sketch by dividing grayscale by inverted blurred image
+                sketch = cv2.divide(gray_img, inverted_blurred, scale=256.0)
+
+                # For better contrast in the sketch
+                sketch = cv2.normalize(sketch, None, alpha=0, beta=255, norm_type=cv2.NORM_MINMAX)
                 
-                # Open the original image
-                original_img = Image.open(original_photo_path)
+                # Convert sketch to PIL Image
+                sketch_pil = Image.fromarray(sketch)
                 
-                # Create a new A4-sized white image
-                a4_img = Image.new('RGB', (a4_width_px, a4_height_px), (255, 255, 255))
+                # Load the diploma frame template
+                diploma_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlays", "diploma.png")
                 
-                # Resize the photo to fit nicely on A4 while maintaining aspect ratio
-                # Use 80% of A4 width for the image
-                target_width = int(a4_width_px * 0.8)
-                aspect_ratio = original_img.height / original_img.width
-                target_height = int(target_width * aspect_ratio)
+                # Check if diploma frame exists
+                if not os.path.exists(diploma_path):
+                    # Create the overlays directory if it doesn't exist
+                    os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlays"), exist_ok=True)
+                    status_label.config(text=f"Error: Diploma frame not found at {diploma_path}")
+                    raise FileNotFoundError(f"Diploma frame not found at {diploma_path}")
+                    
+                # Load the diploma frame
+                diploma_frame = Image.open(diploma_path).convert('RGBA')
                 
-                # Ensure height doesn't exceed 80% of A4 height
-                if target_height > (a4_height_px * 0.8):
-                    target_height = int(a4_height_px * 0.8)
-                    target_width = int(target_height / aspect_ratio)
+                # Define the coordinates where the sketch should be placed within the diploma
+                # Format: (left, top, right, bottom) - the area where the sketch should be placed
+                # These coordinates will need adjustment based on your specific diploma frame
+                frame_w, frame_h = diploma_frame.size
                 
-                resized_img = original_img.resize((target_width, target_height), Image.LANCZOS)
+                # Calculate a reasonable area for the photo - adjust these ratios as needed
+                # This assumes the diploma has a designated space in the center area
+                left_margin_ratio = 0.60  # 15% from left edge
+                right_margin_ratio = 0.10  # 15% from right edge
+                top_margin_ratio = 0.10    # 25% from top edge  
+                bottom_margin_ratio = 0.40  # 25% from bottom edge
                 
-                # Calculate position to center the image on the A4 page
-                x_offset = (a4_width_px - target_width) // 2
-                y_offset = (a4_height_px - target_height) // 2
+                photo_area = (
+                    int(frame_w * left_margin_ratio),
+                    int(frame_h * top_margin_ratio),
+                    int(frame_w * (1 - right_margin_ratio)),
+                    int(frame_h * (1 - bottom_margin_ratio))
+                )
                 
-                # Paste the resized image onto the A4 canvas
-                a4_img.paste(resized_img, (x_offset, y_offset))
+                # Calculate dimensions for the photo to fit in the designated area
+                photo_width = photo_area[2] - photo_area[0]
+                photo_height = photo_area[3] - photo_area[1]
                 
-                # Save the print-ready image
-                print_ready_path = os.path.splitext(original_photo_path)[0] + "_print.jpg"
-                a4_img.save(print_ready_path, quality=95, dpi=(300, 300))
-                progress.config(text="Photo prepared for printing!")
-                self.root.update()
+                # Resize the sketch to fit in the designated area while maintaining aspect ratio
+                sketch_w, sketch_h = sketch_pil.size
+                ratio = min(photo_width / sketch_w, photo_height / sketch_h)
+                new_size = (int(sketch_w * ratio), int(sketch_h * ratio))
+                resized_sketch = sketch_pil.resize(new_size, Image.LANCZOS)
                 
-                # Print the formatted image
+                # Convert grayscale sketch to RGBA for proper transparency handling
+                resized_sketch_rgba = resized_sketch.convert('RGBA')
+                
+                # Create a copy of the diploma frame to work with
+                result_image = diploma_frame.copy()
+                
+                # Calculate the centered position within the photo area
+                paste_x = photo_area[0] + (photo_width - new_size[0]) // 2
+                paste_y = photo_area[1] + (photo_height - new_size[1]) // 2
+                
+                # Paste the sketch onto the diploma frame
+                # Use the sketch as its own mask for proper blending
+                result_image.paste(resized_sketch_rgba, (paste_x, paste_y), resized_sketch_rgba)
+                
+                # Save the combined image (sketch on diploma)
+                framed_path = os.path.splitext(self.photo_path)[0] + "_diploma.jpg"
+                
+                # Convert to RGB before saving as JPG
+                result_image_rgb = result_image.convert('RGB')
+                result_image_rgb.save(framed_path, quality=95)
+                
+                # Print the image directly (no A4 resizing)
                 status_label.config(text="Sending to printer...")
-                progress.config(text="Please wait while your photo is printing")
                 self.root.update()
                 
-                # Print command with specific options for photo printing
+                # Use lpr command with appropriate options for printing
                 subprocess.run([
-                    "lp", 
-                    "-d", printer_name,
-                    "-o", "fit-to-page=true",
-                    "-o", "media=a4",
-                    "-o", "print-quality=high",
-                    print_ready_path
+                    'lpr',
+                    '-o', 'media=A4',
+                    '-o', 'fit-to-page',  # Fit to page to ensure proper sizing
+                    '-o', 'orientation-requested=4',  # Landscape orientation
+                    framed_path
                 ])
                 
-                # Update message after print command is sent
-                status_label.config(text="Print job sent successfully!")
-                progress.config(text="You can collect your photo from the printer.")
+                # Update notification to show success
+                processing_label.config(text="✅")
+                status_label.config(text="Successfully sent to printer!")
+                
+                # Add a button to dismiss the notification
+                dismiss_btn = tk.Button(
+                    notification_frame,
+                    text="OK",
+                    command=printing_notification.destroy,
+                    font=("Helvetica", title_size),
+                    bg=self.accent_color,
+                    fg="white",
+                    padx=20,
+                    pady=10,
+                    cursor="hand2"
+                )
+                dismiss_btn.pack(pady=20)
                 
             except Exception as e:
-                status_label.config(text="Printing Error")
-                progress.config(text=f"Error: {str(e)}")
+                status_label.config(text=f"Error: {str(e)}")
                 
-            # Close notification and preview after delay
-            self.root.after(3000, print_notification.destroy)
-            self.root.after(3500, preview_window.destroy)
+                # Add a button to dismiss the error
+                dismiss_btn = tk.Button(
+                    notification_frame,
+                    text="OK",
+                    command=printing_notification.destroy,
+                    font=("Helvetica", title_size),
+                    bg="#F44336",
+                    fg="white",
+                    padx=20,
+                    pady=10,
+                    cursor="hand2"
+                )
+                dismiss_btn.pack(pady=20)
 
     def retake_photo(self, preview_window):
         """ Retake the photo by closing the preview window and starting over """
