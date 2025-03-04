@@ -46,11 +46,11 @@ lpstat -p -d
 ```
 This command will list all printers and show the default printer.  
 
-To see available printers:  
+To see available printers that have ever been connected to PC:  
 ```sh
 lpstat -a
 ```
-After identifying your desired printer, update the code accordingly.  
+After identifying your desired printer, be sure your system uses that printer as default.  
 Once you press the **Print** button in the app, the last captured photo will be printed using the specified printer.
 
 # Credits
