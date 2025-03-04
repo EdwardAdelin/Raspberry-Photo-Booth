@@ -595,7 +595,7 @@ class PhotoApp:
                 # Use lp command instead of lpr
                 subprocess.run([
                     'lp',
-                    '-d', 'default',  # Use default printer
+                    '-d', 'Brother-FILS',  # Use default printer
                     '-o', 'media=A4',
                     '-o', 'fit-to-page',  # Fit to page to ensure proper sizing
                     '-o', 'landscape',    # Landscape orientation (lp uses this instead of orientation-requested)
