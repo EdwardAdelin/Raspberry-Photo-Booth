@@ -129,15 +129,31 @@ class PhotoApp:
         self.overlay = self.load_overlay()  # Load overlay image
         self.update_video_stream()
 
+    #LOADING OVERLAY FROM EXTERNAL SOURCE
+    # def load_overlay(self):
+    #     """ Load the overlay image and resize it to be smaller """
+    #     overlay_path = os.path.expanduser("~/Pictures/overlay.png")
+    #     if os.path.exists(overlay_path):
+    #         overlay = Image.open(overlay_path).convert("RGBA")
+    #         overlay = overlay.resize((150, 150), Image.LANCZOS)
+    #         return overlay
+    #     else:
+    #         print("Overlay not found! Captured images will not have an overlay.")
+    #         return None
+
+    #LOAD OVERLAY FROM LOCAL PROJECT FOLDER
+    """ Load the overlay image and resize it to be smaller """
+    # Change from user's Pictures folder to local overlays folder
     def load_overlay(self):
-        """ Load the overlay image and resize it to be smaller """
-        overlay_path = os.path.expanduser("~/Pictures/overlay.png")
+        overlay_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlays", "overlay.png")
         if os.path.exists(overlay_path):
             overlay = Image.open(overlay_path).convert("RGBA")
             overlay = overlay.resize((150, 150), Image.LANCZOS)
             return overlay
         else:
-            print("Overlay not found! Captured images will not have an overlay.")
+            print(f"Overlay not found at {overlay_path}! Captured images will not have an overlay.")
+            # Create the overlays directory if it doesn't exist
+            os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "overlays"), exist_ok=True)
             return None
 
     def update_video_stream(self):
@@ -568,11 +584,21 @@ class PhotoApp:
                 self.root.update()
                 
                 # Use lpr command with appropriate options for printing
+                # subprocess.run([
+                #     'lpr',
+                #     '-o', 'media=A4',
+                #     '-o', 'fit-to-page',  # Fit to page to ensure proper sizing
+                #     '-o', 'orientation-requested=4',  # Landscape orientation
+                #     framed_path
+                # ])
+
+                # Use lp command instead of lpr
                 subprocess.run([
-                    'lpr',
+                    'lp',
+                    '-d', 'default',  # Use default printer
                     '-o', 'media=A4',
                     '-o', 'fit-to-page',  # Fit to page to ensure proper sizing
-                    '-o', 'orientation-requested=4',  # Landscape orientation
+                    '-o', 'landscape',    # Landscape orientation (lp uses this instead of orientation-requested)
                     framed_path
                 ])
                 
@@ -585,14 +611,16 @@ class PhotoApp:
                     notification_frame,
                     text="OK",
                     command=printing_notification.destroy,
-                    font=("Helvetica", title_size),
+                    font=("Helvetica", title_size * 4),
                     bg=self.accent_color,
                     fg="white",
-                    padx=20,
-                    pady=10,
-                    cursor="hand2"
+                    padx=80,
+                    pady=40,
+                    cursor="hand2",
+                    relief=tk.RAISED,
+                    borderwidth=5
                 )
-                dismiss_btn.pack(pady=20)
+                dismiss_btn.pack(pady=60)
                 
             except Exception as e:
                 status_label.config(text=f"Error: {str(e)}")
