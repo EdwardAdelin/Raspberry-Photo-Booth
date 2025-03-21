@@ -1,5 +1,9 @@
 # Installation Guide
 
+This app runs on a Linux device, take live images from a connected camera and prints pictures with applied effects and overlays. 
+It is similar to a Photo Booth - you can find similar Photo Booths at weddings.
+It is great for events, parties or any other places where you need a unique diploma, a reminder of an event or a special activity to be remembered.
+
 Before running the application, ensure you have the necessary dependencies installed.  
 Depending on your device's configuration, you may need to install all, some, or none of them.
 
